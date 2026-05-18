@@ -175,7 +175,6 @@ function App() {
   );
 }
 
-export default App;
 ```
 
 ---
@@ -219,7 +218,6 @@ function Filter({ setTitleFilter, ratingFilter, setRatingFilter }) {
   );
 }
 
-export default Filter;
 ```
 
 ---
@@ -240,7 +238,6 @@ function SortMovies({ setSortType }) {
   );
 }
 
-export default SortMovies;
 ```
 
 ---
@@ -363,7 +360,6 @@ function AddMovieModal({ addMovie }) {
   );
 }
 
-export default AddMovieModal;
 ```
 
 ---
@@ -395,7 +391,6 @@ function MovieCard({ movie }) {
   );
 }
 
-export default MovieCard;
 ```
 
 ---
@@ -419,7 +414,6 @@ function MovieList({ movies }) {
   );
 }
 
-export default MovieList;
 ```
 
 ---
