@@ -1,86 +1,120 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MovieList } from "./components/MovieList";
 import { Filter } from "./components/Filter";
-import { AddMovie } from "./components/AddMovie";
 import { AddMovieModal } from "./components/AddMovieModal";
 import { SortMovies } from "./components/SortMovies";
+import { useDebounce } from "./hooks/useDebounce";
 
 function App() {
-  const [movies, setMovies] = useState([
-    {
-      id: 1,
-      title: "Breaking Bad",
-      description: "A chemistry teacher becomes a drug kingpin.",
-      posterURL:
-        "https://m.media-amazon.com/images/I/81aC7I7K6-L._AC_SY679_.jpg",
-      rating: 5,
-    },
-    {
-      id: 2,
-      title: "Game of Thrones",
-      description: "Nine noble families fight for control over Westeros.",
-      posterURL:
-        "https://m.media-amazon.com/images/I/91dSMhdIzTL._AC_SY679_.jpg",
-      rating: 4,
-    },
-    {
-      id: 3,
-      title: "Stranger Things",
-      description: "Kids uncover supernatural mysteries in their town.",
-      posterURL:
-        "https://m.media-amazon.com/images/I/81iB0QK4WmL._AC_SY679_.jpg",
-      rating: 4,
-    },
-  ]);
-
+  const [movies, setMovies] = useState([]);
   const [titleFilter, setTitleFilter] = useState("");
   const [ratingFilter, setRatingFilter] = useState(0);
   const [sortType, setSortType] = useState("");
 
+  // ⏱️ debounce user input
+  const debouncedSearch = useDebounce(titleFilter, 600);
 
+  // 🔄 loading + error states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // 🌐 API fetch (runs when debounced value changes)
+  useEffect(() => {
+    const fetchMovies = async () => {
+      if (!debouncedSearch) return;
+
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await fetch(
+          `https://www.omdbapi.com/?s=${debouncedSearch}&apikey=84610416`
+        );
+
+        const data = await res.json();
+
+        if (data.Response === "True") {
+          const formatted = data.Search.map((movie) => ({
+            id: movie.imdbID,
+            title: movie.Title,
+            posterURL: movie.Poster,
+            description: movie.Year,
+            rating: Math.floor(Math.random() * 5) + 1,
+          }));
+
+          setMovies(formatted);
+        } else {
+          setMovies([]);
+          setError("No movies found");
+        }
+      } catch (err) {
+        setError("Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, [debouncedSearch]);
+
+  // 🎯 add movie manually
   const addMovie = (movie) => {
-    setMovies((prev) => [...prev, { id: Date.now(), ...movie }]);
+    setMovies((prev) => [
+      ...prev,
+      { id: Date.now(), ...movie },
+    ]);
   };
 
+  // 🔎 filter + sort
   const filteredMovies = useMemo(() => {
-    let updatedMovies = [...movies].filter(
-      (movie) =>
-        movie.title
-          .toLowerCase()
-          .includes(titleFilter.toLowerCase()) &&
-        movie.rating >= ratingFilter
+    let result = [...movies].filter(
+      (movie) => movie.rating >= ratingFilter
     );
 
     if (sortType === "az") {
-      updatedMovies.sort((a, b) => a.title.localeCompare(b.title));
+      result.sort((a, b) => a.title.localeCompare(b.title));
     }
 
     if (sortType === "rating") {
-      updatedMovies.sort((a, b) => b.rating - a.rating);
+      result.sort((a, b) => b.rating - a.rating);
     }
 
-    return updatedMovies;
-  }, [movies, titleFilter, ratingFilter, sortType]);
+    return result;
+  }, [movies, ratingFilter, sortType]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <h1 className="text-4xl font-bold">🎬 Movie App</h1>
 
+      <div className="max-w-7xl mx-auto">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">🎬 Netflix Movies</h1>
           <AddMovieModal addMovie={addMovie} />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 justify-between mb-8">
-          <Filter
-            setTitleFilter={setTitleFilter}
-            ratingFilter={ratingFilter}
-            setRatingFilter={setRatingFilter}
-          />
+        {/* SEARCH + FILTER */}
+        <Filter
+          setTitleFilter={setTitleFilter}
+          ratingFilter={ratingFilter}
+          setRatingFilter={setRatingFilter}
+        />
 
-          <SortMovies setSortType={setSortType} />
-        </div>
+        <SortMovies setSortType={setSortType} />
 
+        {/* LOADING */}
+        {loading && (
+          <p className="text-yellow-400 mt-4">
+            Loading movies...
+          </p>
+        )}
+
+        {/* ERROR */}
+        {error && (
+          <p className="text-red-400 mt-4">{error}</p>
+        )}
+
+        {/* MOVIES */}
         <MovieList movies={filteredMovies} />
       </div>
     </div>
@@ -88,5 +122,3 @@ function App() {
 }
 
 export default App;
-
-//
